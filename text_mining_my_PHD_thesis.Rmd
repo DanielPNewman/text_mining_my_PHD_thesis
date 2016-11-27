@@ -1,0 +1,98 @@
+---
+output:
+  html_document: default
+  html_notebook: default
+---
+
+I had never tried text mining with R before.
+I came accross [this](http://www.sthda.com/english/wiki/text-mining-and-word-cloud-fundamentals-in-r-5-simple-steps-you-should-know) great little tutorial and thought I would use it to help me do some basic text mining on my PhD thesis document, which I first saved as a .txt file. 
+
+#Set up
+```{r}
+setwd("C://Users//Dan/Documents//GitHub//text_mining_my_PHD_thesis")
+
+
+## Install ##
+ # install.packages("tm")  # for text mining
+# install.packages("SnowballC") # for text stemming
+# install.packages("wordcloud") # word-cloud generator 
+# install.packages("RColorBrewer") # color palettes
+
+
+# Load
+library("tm")
+library("SnowballC")
+library("wordcloud")
+library("RColorBrewer")
+```
+
+##Clean the text
+```{r}
+# Read the text file
+text <- readLines("my_PhD_thesis.txt")
+# Load the data as a corpus
+docs <- Corpus(VectorSource(text))
+
+#Text transformation
+toSpace <- content_transformer(function(x , pattern ) gsub(pattern, " ", x))
+docs <- tm_map(docs, toSpace, "/")
+docs <- tm_map(docs, toSpace, "@")
+docs <- tm_map(docs, toSpace, "\\|")
+docs <- tm_map(docs, toSpace, "-")
+docs <- tm_map(docs, toSpace, "oâ???T")
+docs <- tm_map(docs, toSpace, "\\^oâ")
+
+
+# Remove punctuations
+docs <- tm_map(docs, removePunctuation)
+# Remove numbers
+docs <- tm_map(docs, removeNumbers)
+# Convert the text to lower case
+docs <- tm_map(docs, content_transformer(tolower))
+# Remove english common stopwords
+docs <- tm_map(docs, removeWords, stopwords("english"))
+# Remove your own stop word
+# specify your stopwords as a character vector
+docs <- tm_map(docs, removeWords, c("timetask", "http", "doi", "org", "fig", 
+                                    "non", "nes", "via", "pardo")) 
+# Eliminate extra white spaces
+docs <- tm_map(docs, stripWhitespace)
+# Text stemming
+# docs <- tm_map(docs, stemDocument)
+
+# inspect(docs)
+```
+
+
+##Build a term-document matrix
+```{r}
+dtm <- TermDocumentMatrix(docs)
+m <- as.matrix(dtm)
+v <- sort(rowSums(m),decreasing = TRUE)
+d <- data.frame(word = names(v),freq = v)
+head(d, 25)
+```
+
+##Generate the Word cloud from my PhD Thesis
+```{r, warning=FALSE}
+set.seed(1234)
+wordcloud(words = d$word, freq = d$freq, min.freq = 1,
+          max.words = 200, random.order = FALSE, rot.per = 0.35, 
+          colors = brewer.pal(8, "Dark2"))
+```
+
+
+##Explore associations
+e.g. words associated with "attention":
+```{r}
+
+findAssocs(dtm, terms = "attention", corlimit = 0.3)
+```
+
+
+
+
+
+
+
+
